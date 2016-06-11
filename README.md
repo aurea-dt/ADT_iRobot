@@ -3,10 +3,10 @@
 This code provides an API to control the iRobot create 2 platform
 in form of a C++ object ADT_iRobot.
 The code is based on the specifications described on 
-the iRobot® Create® 2 Open Interface documentation [1] and our
+the iRobot® Create® 2 [Open Interface documentation](https://cdn-shop.adafruit.com/datasheets/create_2_Open_Interface_Spec.pdf) and our
 [serial port API](https://github.com/aurea-dt/serialPortAPI).  It depends on glib for socket callbacks. 
 
-[1] https://cdn-shop.adafruit.com/datasheets/create_2_Open_Interface_Spec.pdf
+
 
 
 ##Compiling
