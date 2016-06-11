@@ -215,7 +215,7 @@ void ADT_iRobot::setLEDs(ADT_iRobot_LED_COMMAND ledbits, unsigned char color,uns
 */
 void ADT_iRobot::pauseStream()
 {
-	RxStatus = 0;
+	rxStatus = -1;
 
 	unsigned char command[2];
 	command[0] = ADT_iRobot_CONTROL_STREAM;

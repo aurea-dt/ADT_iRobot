@@ -19,21 +19,21 @@ APPNAME = ADT_iRobotTest
 #main function
 	mainP= main
 #-------------------------------------------------------------------------------
-all: Project
+all: Project Project2
 
-Project: mainP.o ADT_iRobot.o ADT_SerialPortRx.o	
+Project: mainP.o ADT_iRobot.o ADT_SerialPort.o	
 	$(CC) -o $(APPNAME) \
 	ADT_iRobot.o \
-	ADT_SerialPortRx.o \
+	ADT_SerialPort.o \
 	$(mainP).o \
 	-L $(DIRlib) \
 	-I $(incDIR) \
 	$(LIBS) 
 	
 
-ADT_SerialPortRx.o: ADT_SerialPortRx.cpp
+ADT_SerialPort.o: ADT_SerialPort.cpp
 	$(CC) $(INCLUIDES) $(CFLAGS) \
-	ADT_SerialPortRx.cpp
+	ADT_SerialPort.cpp
 
 ADT_iRobot.o: ADT_iRobot.cpp
 	$(CC) $(INCLUIDES) $(CFLAGS) \
@@ -43,3 +43,5 @@ mainP.o: $(mainP).cpp
 	$(CC) $(INCLUIDES) $(CFLAGS) \
 	$(mainP).cpp
 
+Project2: 
+	cd ADT_iRobot_joystickControl;make
