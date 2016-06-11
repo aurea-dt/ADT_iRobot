@@ -2,92 +2,93 @@
 /**
  *	@file	ADT_iRobot.cpp
  *	@author	Mario Chirinos Colunga, Daniel Bojórquez Rodríguez
- *	@date	2016-22-02
- *	@note	cpp template
+ *	@date	2016/02/22
+*	@note	This code provides an API to control the iRobot create 2 platform
+*		in form of an object ADT_iRobot.
+		The code is based on the specifications described on 
+*		the iRobot® Create® 2 Open Interface documentation [1] and our
+*		serial port API [2]. It depends on glib for socket callbacks. 
+*
+*		[1] https://cdn-shop.adafruit.com/datasheets/create_2_Open_Interface_Spec.pdf
+*		[2] https://github.com/aurea-dt/serialPortAPI
  */
 ////////////////////////////////////////////////////////////////////////////////
 #include "ADT_iRobot.h"
-#include<iostream>
-#include<cstring>
+#include <iostream>
+#include <cstring>
+#include <iomanip>
 
 using namespace std;
 /**
-*	ADT_iRobot Class Constructor.
+*	ADT_iRobot constructor.
 *	@param portName Serial port name. 
 */
-ADT_iRobot::ADT_iRobot(const char* portName):ADT_SerialPort(portName, 115200 , "8N1")
+ADT_iRobot::ADT_iRobot(const char* portName):ADT_SerialPort(portName, 115200, "8N1")
 {
-	pauseStream();
+	rxStatus = -1;
 }
 //------------------------------------------------------------------------------
 /**
-*	ADT_iRobot Class Destructor.
-*	to be implement. 
+*	ADT_iRobot destructor.
 */
 ADT_iRobot::~ADT_iRobot()
 {
-
+	cout << "~ADT_iRobot()" << endl;
+	stop();
 }
 //------------------------------------------------------------------------------
 /**
 *	Serial port reception callback.
-*	Callback to manipulate receive data.
 */
 void ADT_iRobot::onGetData()
 {	
 	cout << "ADT_iRobot::onGetData()" << endl;
 
-	static int nBytes = 0;
-	static int bytesToRead=0;
-	static unsigned char streamBuffer[255];
-	static unsigned int streamLength;
-
-	for(int i=0; i<bufferLength; i++)
-		cout << buffer[i]<<dec;
+	cout << "Message("<<bufferLength<<"): ";
+	for(unsigned int i=0; i<bufferLength; i++)
+		cout  << buffer[i] ;
 	cout << endl;
 
-	if(RxStatus == ADT_iRobot_STREAM)
-	{	
+	cout << "Message("<<bufferLength<<"): ";
+	for(unsigned int i=0; i<bufferLength; i++)
+		cout << "<" << hex << (int)buffer[i]<< dec << ">" ;
+	cout << endl;
 
-		if(buffer[0] == ADT_iRobot_STREAM_PACKET && nBytes==0 && bufferLength >= 2)
+	if(rxStatus != -1)
+	{
+		cout << "rxStatus != -1" << endl;
+		if(bufferLength<=4)
 		{
-			bytesToRead=buffer[1]+3;
+			int sensor = 0;
+			memcpy(&sensor, buffer, bufferLength);
+			sensors[rxStatus] = sensor;
+			cout << "Sensor ("<< rxStatus << "): " << sensors[rxStatus] << endl;
 		}
-		else
-		{
-			memcpy(streamBuffer + nBytes, buffer, bufferLength);
-			
-		}
-
-		nBytes+=bufferLength;
-
-		if(nBytes>=bytesToRead)
-		{	
-			streamLength=bytesToRead;
-			nBytes=0;
-			readStatus(streamBuffer,streamLength);
-		}
+		rxStatus = -1;
 	}
 }
 //------------------------------------------------------------------------------
 /**
-*	Send a command to ADT_iRobot.	  
+*	Send command to iRobot.	  
 *
-*	@param commad String with command.
-*	@param size Length of the string command.
+*	@param commad command string.
+*	@param size command string length.
 *	@return number of bytes sent.
 */
-int ADT_iRobot::sendCommand(unsigned char* command,int size) const
+int ADT_iRobot::sendCommand(unsigned char* command, int size) const
 { 
-	 return sendData(command,size);
+	for(int i=0; i<size; i++)
+		cout << "<" <<(int)command[i]<<">";
+	cout << endl;
+	return sendData(command,size);
 }
 //------------------------------------------------------------------------------
 /**
-*	Reset ADT_iRobot.
+*	Reset iRobot.
 */
 void ADT_iRobot::reset() 
 {	
-	RxStatus = 0;
+	rxStatus = -1;
 
 	unsigned char command[1];
 	command[0] = ADT_iRobot_RESET;
@@ -95,18 +96,19 @@ void ADT_iRobot::reset()
 }
 //------------------------------------------------------------------------------
 /**
-*	Beep ADT_iRobot.
-*	Play beep song in the ADT_iRobot.
+*	Play Beep on iRobot.
 */
 void ADT_iRobot::beep() const
 {
-	unsigned char command[7] = {ADT_iRobot_SONG,3,1,64,16,141,3};
-	sendCommand(command,7);
+	unsigned char command[15] = {ADT_iRobot_SONG,0,6,88,20,91,20,88,20,96,20,86,20,91,20};
+
+	sendCommand(command,15);
+	unsigned char command2[2] = {ADT_iRobot_PLAY,0};
+	sendCommand(command2,2);
 }
 //------------------------------------------------------------------------------
 /**
 *	Stop ADT_iRobot.
-*	Stops all functionalities of the ADT_iRobot.
 */
 void ADT_iRobot::stop() const
 { 	
@@ -116,15 +118,18 @@ void ADT_iRobot::stop() const
 }
 //------------------------------------------------------------------------------
 /**
-*	Set the modes of ADT_iRobot.
-*	Set the ADT_iRobot mode.
-*	@param mode ADT_iRobot_MODE_COMMAND Mode.
+*	Set iRobot operation mode.
+*	@param mode ADT_iRobot_MODE_COMMAND.
 */
 void ADT_iRobot::setMode(ADT_iRobot_MODE_COMMAND mode)const
 {	
 	unsigned char command[1];
 	switch(mode)
 	{
+		case STOP:	
+			command[0] = ADT_iRobot_STOP;
+			sendCommand(command,1);
+			break;
 		case PASSIVE:	
 			command[0] = ADT_iRobot_PASSIVE;
 			sendCommand(command,1);
@@ -138,39 +143,30 @@ void ADT_iRobot::setMode(ADT_iRobot_MODE_COMMAND mode)const
 			sendCommand(command,1);
 			break;
 		 default:
+			command[0] = ADT_iRobot_STOP;
+			sendCommand(command,1);
 			break;
 	}
 }
 //------------------------------------------------------------------------------
 /**
-*	Set speed move ADT_iRobot.
-*	Control the motion of ADT_iRobot drive wheels independently.
+*	iRobot drive with radius and velocity.
 * 	
-*	@param speed_left Set speed left wheel.
-*	@param speed_right Set speed Right wheel.
-*/
-void ADT_iRobot::setSpeed(int speed_right,int speed_left) const
+*	@param velocity Velocity in mm/s.
+*	@param radius Turn radius in mm.
+*/	
+void ADT_iRobot::drive(int velocity, int radius)
 {
-	unsigned char command[5];
-	unsigned char right0 = 0x00FF & speed_right;
-	unsigned char right1 = 0x00FF & (speed_right >> 8);
-	unsigned char left0 = 0x00FF & speed_left;
-	unsigned char left1 = 0x00FF & (speed_left >> 8);
-
-	command[0] = ADT_iRobot_DRIVEDIRECT;
-	command[1] = right1;
-	command[2] = right0;
-	command[3] = left1;
-	command[4] = left0;
+	short v = ((short)velocity);
+	short r = ((short)radius);
+	unsigned char command[5]={ADT_iRobot_DRIVE, 0x00FF & (v >> 8), 0x00FF & v, 0x00FF & (r >> 8), 0x00FF & r};
 	sendCommand(command,5);
 }
 //------------------------------------------------------------------------------
 /**
-*	Set the motors.
-*	Control the motion of ADT_iRobot: main brush,
-*	side brush, and vacuum independently.
-*
-*	@param motors ADT_iRobot_MOTORS_COMMAND Config options of motors.
+*	Turn on/off vacum and brush motors.
+*	Turn on or off main brush, side brush or vacuum independently.
+*	@param motors ADT_iRobot_MOTORS_COMMAND as OR flags of motors to enble.
 */
 void ADT_iRobot::setMotors(ADT_iRobot_MOTORS_COMMAND motors) const
 {
@@ -181,15 +177,15 @@ void ADT_iRobot::setMotors(ADT_iRobot_MOTORS_COMMAND motors) const
 }
 //------------------------------------------------------------------------------
 /**
-*	Set the seven segments display.
-*	Controls the four 7 segments displays, using ASCII character codes.
+*	Set seven segments display.
+*	Controls the four 7 segments digits, using ASCII codes.
 *
-*	@param digit[4] Digits seven segments display.
+*	@param digit[4] Four digits to display.
 */
-void ADT_iRobot::setSegments(const char digit[4]) const
+void ADT_iRobot::setDigitLED(const char digit[4]) const
 {
 	unsigned char command[5];
-	command[0] = ADT_iRobot_SEGMENTS;
+	command[0] = ADT_iRobot_LED_ASCII;
 	command[1] = digit[0];
 	command[2] = digit[1];
 	command[3] = digit[2];
@@ -198,11 +194,11 @@ void ADT_iRobot::setSegments(const char digit[4]) const
 }
 //------------------------------------------------------------------------------
 /**
-*	Set LEDs ADT_iRobot.
+*	Control iRobot LEDs.
 *
 *	@param ledbits ADT_iRobot_LED_COMMAND Leds of the ADT_iRobot.
-*	@param color Color of the led.
-*	@param intensity Intensity of the led. 
+*	@param color LEDs color.
+*	@param intensity LEDs intensity. 
 */
 void ADT_iRobot::setLEDs(ADT_iRobot_LED_COMMAND ledbits, unsigned char color,unsigned char intensity) const
 {
@@ -215,114 +211,7 @@ void ADT_iRobot::setLEDs(ADT_iRobot_LED_COMMAND ledbits, unsigned char color,uns
 }
 //------------------------------------------------------------------------------
 /**
-*	Read status of sensors.
-*	Checks if the checksum is correct, 
-*	and writes the data status ADT_iRobot_Status.
-*
-*	@param streamBuffer The buffer to read into.
-	@param streamLength The number of bytes to read. 
-*/
-ADT_iRobot_Status ADT_iRobot::readStatus(unsigned char* streamBuffer, int streamLength)
-{	
-	unsigned char checkSum;
-
-	for (int i=0; i< streamLength; i++)
-	{	
-		checkSum += streamBuffer[i];
-	}
-	cout<<endl;
-	if((checkSum & 0xFF) == 0)
-	{	
-		int byte=2;
-		while(byte < (streamLength - 1))
-		{	
-			switch(streamBuffer[byte])
-			{
-				case ADT_iRobot_PACKETID_BUMPS:
-					status.bumps = streamBuffer[byte+1];
-					byte+=2;
-					break;
-				case ADT_iRobot_PACKETID_WALL:
-					status.wall = streamBuffer[byte+1];
-					byte+=2;
-					break;
-				case ADT_iRobot_PACKETID_CLIFF_LEFT:
-					status.cliffLeft = ((streamBuffer[byte+1] << 8)+(streamBuffer[byte+2]));
-					byte+=3;
-					break;
-				case ADT_iRobot_PACKETID_CLIFF_FRONT_LEFT:
-					status.cliffFrontleft = ((streamBuffer[byte+1] << 8)+(streamBuffer[byte+2]));
-					byte+=3;
-					break;
-				case ADT_iRobot_PACKETID_CLIFF_FRONT_RIGHT:
-					status.cliffFrontright = ((streamBuffer[byte+1] << 8)+(streamBuffer[byte+2]));
-					byte+=3;
-					break;
-				case ADT_iRobot_PACKETID_CLIFF_RIGHT:
-					status.cliffRight = ((streamBuffer[byte+1] << 8)+(streamBuffer[byte+2]));
-					byte+=3;
-					break;
-				case ADT_iRobot_PACKETID_DIRT_DETECT:
-					status.dirtDetect = streamBuffer[byte+1];
-					byte+=2;
-					break;
-				case ADT_iRobot_PACKETID_BUTTONS:
-					status.buttons = streamBuffer[byte+1];
-					byte+=2;
-					break;
-				case ADT_iRobot_PACKETID_VOLTAGE:
-					status.voltage = ((streamBuffer[byte+1] << 8)+(streamBuffer[byte+2]));
-					byte+=3;
-					break;
-				case ADT_iRobot_PACKETID_CURRENT:
-					status.current = ((streamBuffer[byte+1] << 8)+(streamBuffer[byte+2]));
-					byte+=3;
-					break;
-				case ADT_iRobot_PACKETID_TEMPERATURE:
-					status.temperature = streamBuffer[byte+1];
-					byte+=2;
-					break;
-				case ADT_iRobot_PACKETID_BATTERYCHARGE:
-					status.batteryCharge = ((streamBuffer[byte+1] << 8)+(streamBuffer[byte+2]));
-					byte+=3;
-					break;
-				case ADT_iRobot_PACKETID_VELOCITY_RIGHT:
-					status.velocityRight = ((streamBuffer[byte+1] << 8)+(streamBuffer[byte+2]));
-					byte+=3;
-					break;
-				case ADT_iRobot_PACKETID_VELOCITY_LEFT:
-					status.velocityLeft = ((streamBuffer[byte+1] << 8)+(streamBuffer[byte+2]));
-					byte+=3;
-					break;
-				case ADT_iRobot_PACKETID_INFRARED_CHARACTER_OMMI:
-					status.infraredCharacterommi= streamBuffer[byte+1];
-					byte+=2;
-					break;
-				case ADT_iRobot_PACKETID_INFRARED_CHARACTER_LEFT:
-					status.infraredCharacterleft = streamBuffer[byte+1];
-					byte+=2;
-					break;
-				case ADT_iRobot_PACKETID_INFRARED_CHARACTER_RIGHT:
-					status.infraredCharacterright = streamBuffer[byte+1];
-					byte+=2;
-					break;
-			}
-		}
-	}
-}
-//------------------------------------------------------------------------------
-/**
-*	Get status of sensors.
-*
-*	@return status Staus of sensors.
-*/
-ADT_iRobot_Status ADT_iRobot::getStatus() const
-{	
-	return status;
-}
-//------------------------------------------------------------------------------
-/**
-*	Pause the stream.
+*	Pause the data stream.
 */
 void ADT_iRobot::pauseStream()
 {
@@ -335,115 +224,50 @@ void ADT_iRobot::pauseStream()
 }
 //------------------------------------------------------------------------------
 /**
-*	Start a stream.
-*	Start a stream of data packets.
+*	Start data stream.
 *
-* 	@param sensors ADT_iRobot_Sensors Sensors packets.	
+* 	@param sensors ADT_iRobot_Sensors Sensors to read.	
 */
-void ADT_iRobot::starStream(ADT_iRobot_Sensors sensors)
+void ADT_iRobot::startStream(const char* sensorsList, unsigned char nSensors)
 {	
+	unsigned char data[nSensors+2];
+	data[0] = ADT_iRobot_STREAM;
+	data[1] = nSensors;
+	memcpy(data+2, sensorsList, nSensors);
 
-	unsigned char command[ADT_iRobot_NUMBER_SENSORS+2];
-	int pos=2;
-	
-	command[0] = ADT_iRobot_STREAM;
 
-	if (sensors &  BUMPS)
-	{
-		command[pos]=ADT_iRobot_PACKETID_BUMPS;		
-		pos++;
-	}
-	if (sensors &  WALL)
-	{
-		command[pos]=ADT_iRobot_PACKETID_WALL;		
-		pos++;
-	}
-	if (sensors &  DIRT_DETECT)
-	{
-		command[pos]=ADT_iRobot_PACKETID_DIRT_DETECT;		
-		pos++;
-	}
-	if (sensors & INFRARED_CHARACTER_OMMI)
-	{
-		command[pos]=ADT_iRobot_PACKETID_INFRARED_CHARACTER_OMMI;		
-		pos++;
-	}
-	if (sensors &  BUTTONS)
-	{
-		command[pos]=ADT_iRobot_PACKETID_BUTTONS;		
-		pos++;
-	}
-	if (sensors &  VOLTAGE)
-	{
-		command[pos]=ADT_iRobot_PACKETID_VOLTAGE;		
-		pos++;
-	}
-	if (sensors &  CURRENT)
-	{
-		command[pos]=ADT_iRobot_PACKETID_CURRENT;		
-		pos++;
-	}
-	if (sensors &  TEMPERATURE)
-	{
-		command[pos]=ADT_iRobot_PACKETID_TEMPERATURE;		
-		pos++;
-	}
-	if (sensors &  BATTERYCHARGE)
-	{
-		command[pos]=ADT_iRobot_PACKETID_BATTERYCHARGE;		
-		pos++;
-	}
-	if (sensors &  CLIFF_LEFT)
-	{
-		command[pos]=ADT_iRobot_PACKETID_CLIFF_LEFT;		
-		pos++;
-	}
-	if (sensors &  CLIFF_FRONT_LEFT)
-	{
-		command[pos]=ADT_iRobot_PACKETID_CLIFF_FRONT_LEFT;		
-		pos++;
-	}
-	if (sensors &  CLIFF_FRONT_RIGHT)
-	{
-		command[pos]=ADT_iRobot_PACKETID_CLIFF_FRONT_RIGHT;		
-		pos++;
-	}
-	if (sensors &  CLIFF_RIGHT)
-	{
-		command[pos]=ADT_iRobot_PACKETID_CLIFF_RIGHT;		
-		pos++;
-	}
-	if (sensors &  VELOCITY_RIGHT)
-	{
-		command[pos]=ADT_iRobot_PACKETID_VELOCITY_RIGHT;		
-		pos++;
-	}
-	if (sensors &  VELOCITY_LEFT)
-	{
-		command[pos]=ADT_iRobot_PACKETID_VELOCITY_LEFT;		
-		pos++;
-	}
-	if (sensors & INFRARED_CHARACTER_LEFT)
-	{
-		command[pos]=ADT_iRobot_PACKETID_INFRARED_CHARACTER_LEFT;		
-		pos++;
-	}
-	if (sensors & INFRARED_CHARACTER_RIGHT)
-	{
-		command[pos]=ADT_iRobot_PACKETID_INFRARED_CHARACTER_RIGHT;		
-		pos++;
-	}
-	if(pos != 2)
-	{
-		RxStatus = ADT_iRobot_STREAM;
-		command[1] = pos - 2;
-
-		cout<<"Start Stream: ";
-
-		for(int i=0; i<pos; i++)
-			cout << "<" <<(int)command[i]<<">";
-		cout << endl;
-		sendCommand(command,pos);
-	}
-	
+	sendCommand(data,nSensors+2);
 }
+//------------------------------------------------------------------------------
+/**
+*	Ask for a list of sensor packets.
+*
+* 	@param sensorsList List sensors to read.
+* 	@param nSensors Total number of sensors to read		
+*/
+void ADT_iRobot::getQueryList(const char* sensorsList, unsigned char nSensors)
+{
+	unsigned char data[nSensors+2];
+	data[0] = ADT_iRobot_QUERY_LIST;
+	data[1] = nSensors;
+	memcpy(data+2, sensorsList, nSensors);
+
+	sendCommand(data,nSensors+2);
+}
+//------------------------------------------------------------------------------
+/**
+*	Ask for a single sensor value.
+*
+* 	@param sensor Sensor to read.
+*/
+//------------------------------------------------------------------------------
+void ADT_iRobot::getSensor(ADT_iRobot_SensorPackets sensor)
+{
+	unsigned char data[2];
+	data[0] = ADT_iRobot_SENSORS;
+	data[1] = sensor;
+	rxStatus = sensor;
+	sendCommand(data,2);
+}
+//------------------------------------------------------------------------------
+

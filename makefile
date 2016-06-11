@@ -21,18 +21,19 @@ APPNAME = ADT_iRobotTest
 #-------------------------------------------------------------------------------
 all: Project
 
-Project: mainP.o ADT_iRobot.o ADT_SerialPort.o
+Project: mainP.o ADT_iRobot.o ADT_SerialPortRx.o	
 	$(CC) -o $(APPNAME) \
+	ADT_iRobot.o \
+	ADT_SerialPortRx.o \
+	$(mainP).o \
 	-L $(DIRlib) \
 	-I $(incDIR) \
-	$(LIBS) \
-	ADT_iRobot.o  \
-	ADT_SerialPort.o \
-	$(mainP).o	
+	$(LIBS) 
+	
 
-ADT_SerialPort.o: ADT_SerialPort.cpp
+ADT_SerialPortRx.o: ADT_SerialPortRx.cpp
 	$(CC) $(INCLUIDES) $(CFLAGS) \
-	ADT_SerialPort.cpp
+	ADT_SerialPortRx.cpp
 
 ADT_iRobot.o: ADT_iRobot.cpp
 	$(CC) $(INCLUIDES) $(CFLAGS) \

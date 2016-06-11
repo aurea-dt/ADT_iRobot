@@ -10,8 +10,13 @@
 #include<iostream>
 #include<cstring>
 #include <stdlib.h>
+const char nSensorsToRead = 2;
+char  sensorToReadIndex = 0;
+const ADT_iRobot_SensorPackets sensorsToRead[nSensorsToRead]={ADT_iRobot_PACKETID_BATTERY_CHARGE,ADT_iRobot_PACKETID_BATTERY_CAPACITY};
+
 
 using namespace std;
+//------------------------------------------------------------------------------
 /**
 *	ADT_iRobot_joystickControl Class Constructor.
 *
@@ -19,88 +24,67 @@ using namespace std;
 */
 ADT_iRobot_joystickControl::ADT_iRobot_joystickControl(const char* portName):ADT_iRobot(portName)
 {
+	//reset();
+	setMode(PASSIVE);
+	setMode(FULL);
+	g_timeout_add(2000,timeOut_callback, this);
 
 }
 //------------------------------------------------------------------------------
 /**
 *	ADT_iRobot_joystickControl Class Destructor.
-*	to be implement. 
 */
 ADT_iRobot_joystickControl::~ADT_iRobot_joystickControl()
 {
 
 }
+//void ADT_iRobot_joystickControl::onGetData()
+//{
+//	cout << "ADT_iRobot_joystickControl::onGetData()" << endl;
+//}
+//------------------------------------------------------------------------------
+int ADT_iRobot_joystickControl::timeOut_callback (void* userdata)
+{
+	cout << "timeOut_callback" << endl;
+
+//	char list[3] = {ADT_iRobot_PACKETID_IO_MODE, ADT_iRobot_PACKETID_BATTERY_CHARGE,ADT_iRobot_PACKETID_BATTERY_CAPACITY};
+//	((ADT_iRobot_joystickControl*)userdata)->getQueryList(list,3);
+
+	((ADT_iRobot_joystickControl*)userdata)->getSensor(sensorsToRead[sensorToReadIndex]);
+	sensorToReadIndex++;
+	if(sensorToReadIndex>=nSensorsToRead)
+		sensorToReadIndex=0;
+
+
+//	((ADT_iRobot_joystickControl*)userdata)->getSensor(ADT_iRobot_PACKETID_BATTERY_CHARGE);
+	return true;
+}
 //------------------------------------------------------------------------------
 /**
 *	Drive ADT_iRobot_joystickControl.
-*	Receives the data for the joystick and send data processing 
-*	to the robot.
 *
 *	@param number number of axis of the joystick.
 *	@param value value of axis of the joystick.
 */
-void ADT_iRobot_joystickControl::drive (int number, int value) 
+void ADT_iRobot_joystickControl::move (float xx, float yy) 
 {
-	int left,right,move,turn,tcoeff,angle;
-	float x=0,y=0,z,rad;
+	int speed = sqrt(xx*xx+yy*yy)*500;
+	speed = (signbit(yy)? speed*-1:speed);
+	float angle = 0;
 
-	switch(number) 
-		{
-			case 0: 
-				x = value;
-				break;
-			case 1: 
-				y=(-1*value);
-				break;
-		}
-	
-	x = x * (MAX_SPEED_ROBOT / (float)SHRT_MAX);
-	y = y * (MAX_SPEED_ROBOT / (float)SHRT_MAX);
+	if(yy!=0)
+		angle= atan (yy/xx) * 180 / M_PI;
 
-     	z = sqrt ((x*x)+(y*y));
+	angle=(signbit(xx)? abs(angle):-1*abs(angle));
 
-    	rad = acos(((abs(x))/z));
+	int radius = angle/90 * 2000;
 
-     	angle = rad*(180/M_PI);
-	
-	tcoeff = -1 + (angle/90)*2;
-    	turn = tcoeff * abs(abs(y) - abs(x));
-		
-	if(abs(x) > abs(y))
-		move = abs(x);
-	else if (abs(x) < abs(y))
-		move = abs(y);
-	else if  (abs(x) == abs(y))
-		move = abs(y);
-
-
-	if ( (x >= 0 && y >= 0) || (x < 0 &&  y < 0) ) 
-	{
-        	left = move;
-        	right = turn;
-	} 
-	else 
-	{
-        	right = move;
-        	left = turn;
-	}
-
-   	if(y < 0)
-	{
-		left = 0 - left;
-        	right = 0 - right;
-	}
-	
-	if(left > MAX_SPEED_ROBOT)
-		left = MAX_SPEED_ROBOT;
-	if(left < MIN_SPEED_ROBOT)
-		left = MIN_SPEED_ROBOT;
-	if(right > MAX_SPEED_ROBOT)
-		right = MAX_SPEED_ROBOT;
-	if(right < MIN_SPEED_ROBOT)
-		right = MIN_SPEED_ROBOT;
-
-	setSpeed(right,left);
+	if(abs(angle)==90)
+		radius = SHRT_MAX;
+	if(angle==0)
+		radius = (xx<0?-1:1);
+	setMode(FULL);
+	drive(speed, radius);
 }
 //------------------------------------------------------------------------------
 /**
@@ -117,96 +101,65 @@ void ADT_iRobot_joystickControl::command(int number, int value)
 		{
 			case 0: 
 				if(value == 1)
-					setMode(PASSIVE);
+					reset();
 				break;
 			case 1: 
 				if(value == 1)
-					setMode(FULL);
+					setMode(PASSIVE);
 				break;
 			case 2: 
 				if(value == 1)
-					starStream((ADT_iRobot_Sensors)(INT_MAX));
+					setMode(SAFE);
 				break;
 			case 3: 
 				if(value == 1)
-					setMotors((ADT_iRobot_MOTORS_COMMAND)(SIDE_BRUSH|VACUUM));
-				else
-					setMotors((ADT_iRobot_MOTORS_COMMAND)(0));
+					setMode(FULL);
 				break;
+
 			case 4: 
 				if(value == 1)
-					pauseStream();
+					stop();
 				break;
 			case 5: 
 				if(value == 1)
-					setSegments("AURE");
-				else
-					setSegments("    ");
+					setDigitLED("1234");
 				break;
-			case 6: 
-				if(value == 1)
-				{
-					statusSensors(getStatus());
-					displayData();
-				}
-				break;
-			case 7: 
-				if(value == 1)
-					reset();
-				break;
+//			case 3: 
+//				if(value == 1)
+//					setMotors((ADT_iRobot_MOTORS_COMMAND)(SIDE_BRUSH|VACUUM));
+//				else
+//					setMotors((ADT_iRobot_MOTORS_COMMAND)(0));
+//				break;
+//			case 4: 
+//				if(value == 1)
+////					pauseStream();
+//				break;
+//			case 5: 
+//				if(value == 1)
+//					setSegments("AURE");
+//				else
+//					setSegments("    ");
+//				break;
+//			case 6: 
+//				if(value == 1)
+//				{
+//					statusSensors(getStatus());
+//					displayData();
+//				}
+//				break;
+//			case 7: 
+//				if(value == 1)
+//					reset();
+//				break;
 		}
 }
 //------------------------------------------------------------------------------
 /**
-*	Function display Data.
 *	Displays the status of the sensors.
 */
 void ADT_iRobot_joystickControl::displayData() const
 {
-	cout << "---------------------------------------------------------------" << endl;
-	cout << "Sensors" << endl;
-	cout << "TEMPERATURE: "<< sensor.temperature <<"°C"<<endl;
-	cout <<"VOLTAGE: " << sensor.voltage << " V"<<endl;
-	cout << "BUMPS: " << sensor.bumps <<endl;
-	cout <<"CURRENT: " << sensor.current<< " A"<<endl;
-	cout << "BUTTONS: " << sensor.buttons <<endl;
-	cout << "WALL: " << sensor.buttons <<endl;
-	cout << "BATTERYCHARGE: " << sensor.batteryCharge <<" Ah"<<endl;
-	cout << "DIRT_DETECT: " << sensor.dirtDetect<<endl;
-	cout << "CLIFF_LEFT: "<< sensor.cliffLeft<<endl;
-	cout << "CLIFF_FRONT_LEFT: "<< sensor.cliffFrontleft<<endl;
-	cout << "CLIFF_FRONT_RIGHT: "<< sensor.cliffFrontright<<endl;
-	cout << "CLIFF_RIGHT: "<< sensor.cliffRight<<endl;
-	cout << "INFRARED_CHARACTER_OMMI: " << sensor.infraredCharacterommi<<endl;
-	cout << "INFRARED_CHARACTER_LEFT: " << sensor.infraredCharacterleft<<endl;
-	cout << "INFRARED_CHARACTER_RIGHT: " << sensor.infraredCharacterright<<endl;
-	cout << "VELOCITY_LEFT: " << sensor.velocityLeft<<endl;
-	cout << "VELOCITY_RIGHT: " << sensor.velocityRight<<endl;
+
 }
-//------------------------------------------------------------------------------
-/**
-*	Status sensors.
-*	Receives status sensors.
-*
-*	@param read ADT_iRobot_Status Read status sensors.
-*/
-void ADT_iRobot_joystickControl::statusSensors(ADT_iRobot_Status read)
-{
-	sensor.temperature = (int)read.temperature;
-	sensor.voltage = ((float)(read.voltage))/1000;
-	sensor.bumps = (int)read.bumps;
-	sensor.current = ((float)(read.current))/1000;
-	sensor.buttons = (int)read.buttons;
-	sensor.wall = (int)read.wall;
-	sensor.batteryCharge = ((float)(read.batteryCharge))/1000;
-	sensor.dirtDetect= (int)read.dirtDetect;
-	sensor.cliffLeft = read.cliffLeft;
-	sensor.cliffFrontleft = read.cliffFrontleft;
-	sensor.cliffFrontright = read.cliffFrontright;
-	sensor.cliffRight = read.cliffRight;
-	sensor.infraredCharacterommi = (int)read.infraredCharacterommi;
-	sensor.infraredCharacterleft = (int)read.infraredCharacterleft;
-	sensor.infraredCharacterright= (int)read.infraredCharacterright;
-	sensor.infraredCharacterright = read.velocityLeft;
-	sensor.infraredCharacterright = read.velocityRight;
-}
+
+

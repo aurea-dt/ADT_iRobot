@@ -112,7 +112,7 @@ int ADT_SerialPort::config(int speed, const char* settings)
 	port_settings.c_cflag &= ~CSIZE;	/* Clear current char size mask */
 	port_settings.c_cflag &= ~PARENB;    // set no parity, stop bits, data bits
 	port_settings.c_cflag &= ~CSTOPB;
-	//port_settings.c_cflag &= ~ECHO;
+	port_settings.c_cflag &= ~ECHO;
 	//port_settings.c_cflag |= CRTSCTS; 
 		
 	switch(settings[0])
@@ -158,7 +158,7 @@ int ADT_SerialPort::config(int speed, const char* settings)
 			break;
 	}
 
-	//tcflush(fd, TCIFLUSH);
+	tcflush(fd, TCIFLUSH);
 	tcsetattr(fd, TCSANOW, &port_settings);    // apply the settings to the port
 	return(fd);
 }
@@ -171,24 +171,28 @@ int ADT_SerialPort::ttycallback(GIOChannel *source, GIOCondition condition, void
 	//g_io_channel_read_chars(source, (char*)((ADT_SerialPort*)data)->buffer, BUFFERSIZE, &((ADT_SerialPort*)data)->bufferLength, NULL);
      	((ADT_SerialPort*)data)->onGetData();
    	//g_io_channel_flush(((ADT_SerialPort*)data)->channel,  NULL);
+
+	//tcflush(((ADT_SerialPort*)data)->fd, TCIFLUSH);
 	return 1;
 }
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //	Send *data to fd Socket
-	int ADT_SerialPort::sendData(int fd, const unsigned char *data, int length) const
+int ADT_SerialPort::sendData(int fd, const unsigned char *data, int length) const
 {	
 	struct termios port_settings;      // structure to store the port settings in
    	tcgetattr(fd, &port_settings);
 //	g_io_channel_write_chars(channel, (const char*)buffer, bufferLength, NULL, NULL);
-//	if(write(fd, data, length) < 0)
-//	{
-//		cerr << "ERROR writing to socket" << endl;
-//		return false;
-//	}
-	write(fd, data, length);
-	tcflush(fd, TCIFLUSH);
-	tcsetattr(fd, TCSANOW, &port_settings);
+
+//	tcsetattr(fd, TCSANOW, &port_settings);
+	if(write(fd, data, length) < 0)
+	{
+		cerr << "ERROR writing to socket" << endl;
+		return false;
+	}	
+	tcflush(fd, TCOFLUSH);
+//	write(fd, data, length);
+
 	cout << "data sent" << endl;
 
 //	unsigned char* mybuffer = new unsigned char[BUFFERSIZE];
@@ -237,10 +241,10 @@ void ADT_SerialPort::onGetData()
 	cout << "Message ("<< bufferLength<<"): "<<endl;
 
 	cout << "MessageHEX ("<< bufferLength<<"): ";
-	for(int i=0; i<bufferLength; i++)
+	for(unsigned int i=0; i<bufferLength; i++)
 	cout << hex << "<" <<(int)buffer[i]<<">"<<dec;
 	cout << endl;
-	for(int i=0; i<bufferLength; i++)
+	for(unsigned int i=0; i<bufferLength; i++)
 		 cout << buffer[i]<<dec;
 	cout << endl;
 //	sendData("Message Recived\n\r", 17);

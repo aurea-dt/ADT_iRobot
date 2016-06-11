@@ -22,12 +22,12 @@ all: Project
 
 Project: mainP.o ADT_joystick.o ADT_iRobot.o ADT_SerialPort.o ADT_iRobot_joystickControl.o
 	$(CC) -export-dynamic -o $(APPNAME) \
-	$(LIBS) \
 	$(mainP).o \
 	ADT_joystick.o \
 	ADT_iRobot.o  \
 	ADT_SerialPort.o \
 	ADT_iRobot_joystickControl.o \
+	$(LIBS)
 	
 mainP.o: $(mainP).cpp
 	$(CC) $(INCLUIDES) $(CFLAGS) \

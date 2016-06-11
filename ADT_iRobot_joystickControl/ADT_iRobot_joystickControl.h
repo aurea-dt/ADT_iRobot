@@ -10,36 +10,14 @@
 #ifndef ADT_iRobot_joystickControl_H
 #define ADT_iRobot_joystickControl_H
 
+
+
 #include <string>
 #include <unistd.h>
 #include <math.h>
 #include "../ADT_iRobot.h"
-#define MAX_SPEED_ROBOT 500
-#define MIN_SPEED_ROBOT -500
+#define MAX_SPEED_ROBOT 200
 
-/**
-*	List of status of sensors. 
-*/
-typedef struct
-{
-	float batteryCharge;
-	float current;
-	float voltage;
-	int temperature;
-	int wall;
-	int cliffLeft;
-	int cliffFrontleft;
-	int cliffFrontright;
-	int cliffRight;
-	int bumps;
-	int dirtDetect;
-	int velocityRight;
-	int velocityLeft;
-	int buttons;
-	int infraredCharacterommi;
-	int infraredCharacterleft;
-	int infraredCharacterright;
-}Status;
 
 using namespace std;
 // the declaration of your class...
@@ -47,15 +25,17 @@ using namespace std;
 class ADT_iRobot_joystickControl: private ADT_iRobot
 {
 	private:
-		Status sensor;
-
-		void statusSensors(ADT_iRobot_Status p);
 		void displayData() const;
+		static int timeOut_callback(void* userdata);
+
+/*		void onGetData();*/
 	public: 
-		void drive (int number, int value) ;
+		int axis[6];
+		void move (float x, float y) ;
 		void command(int number, int value) ;
 		ADT_iRobot_joystickControl(const char* portName);
 		~ADT_iRobot_joystickControl();
 };
 //------------------------------------------------------------------------------
+
 #endif

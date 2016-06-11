@@ -21,7 +21,12 @@ using namespace std;
 void axis_callback(unsigned int number, int value, void *userdata)
 {
 	cout << ((ADT_joystick*)userdata)->getDevName() << " axis event #"<< number << " : " << value << endl;
-	control->drive(number,value);
+
+	control->axis[number]=value;
+
+	float x = (float)control->axis[0]/SHRT_MAX;
+	float y = -1*(float)control->axis[1]/SHRT_MAX;
+	control->move(x,y);
 }
 //------------------------------------------------------------------------------
 void button_callback(unsigned int number, int value, void *userdata)
@@ -35,7 +40,7 @@ int main (int argc, char *argv[])
 	control = new ADT_iRobot_joystickControl(argv[1]);
 	ADT_joystick joystick;
 	joystick.enumJoysticks();
-	joystick.connect("/dev/input/js1");
+	joystick.connect("/dev/input/js0");
 	joystick.setAxisCallback(&axis_callback);
 	joystick.setButtonCallback(&button_callback);
 
@@ -43,6 +48,8 @@ int main (int argc, char *argv[])
 	main_loop = g_main_loop_new (NULL, FALSE);
 	g_main_loop_run(main_loop);
 
+
+	delete control;
  return 0;
 }
 
