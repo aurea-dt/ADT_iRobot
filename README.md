@@ -9,11 +9,18 @@ the iRobot® Create® 2 Open Interface documentation [1] and our
 [1] https://cdn-shop.adafruit.com/datasheets/create_2_Open_Interface_Spec.pdf
 
 
-##Requisites to compile
+##Compiling
+###Prerequisites
 To compile the code you will need glib develpment package libglib2.0-dev .
 
 ``` bash
 $ sudo apt-get install libglib2.0-dev
+```
+###Compile
+``` bash
+$ git clone https://github.com/aurea-dt/ADT_iRobot.git
+$ cd ADT_iRobot
+$ make
 ```
 
 ##Joystick example
