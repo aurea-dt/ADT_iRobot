@@ -30,6 +30,7 @@ control the iRobot with a joystick or game pad. This program depends on our
 
 ### Run the program
 ``` bash
+cd ADT_iRobot_joystickControl
 $ ./joystickControlTest /dev/ttyUSB0
 ```
 
