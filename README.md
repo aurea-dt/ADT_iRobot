@@ -17,7 +17,13 @@ To compile the code you will need glib develpment package libglib2.0-dev .
 $ sudo apt-get install libglib2.0-dev
 ```
 
-##JoyStick example
+##Joystick example
 An example program is provided to show how to use this API. The prgram alows to 
 control the iRobot with a joystick or game pad. This program depends on our 
 [ADT_joyStick API](https://github.com/aurea-dt/joystickAPI). 
+
+### Run the program
+``` bash
+$ ./joystickControlTest /dev/ttyUSB0
+```
+
