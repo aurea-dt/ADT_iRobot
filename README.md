@@ -1,5 +1,5 @@
-# ADT_iRobot
-iRobot create 2 C++ API
+ADT_iRobot
+iRobot create 2 C++ API)
 =======================
 
 This code provides an API to control the iRobot create 2 platform
